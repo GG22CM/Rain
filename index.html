@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
+<!--[if gt IE 8]>      <html class="no-js"> <!--<![endif]-->
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <title></title>
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="">
+        <style>
+            * {
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+            canvas {
+                width: 100%;
+                height: 100vh;
+                position:absolute;
+                top: 0;
+                left: 0;
+           
+            }
+        </style>
+    </head>
+    <body>
+        <!--[if lt IE 7]>
+            <p class="browsehappy">You are using an <strong>outdated</strong> browser. Please <a href="#">upgrade your browser</a> to improve your experience.</p>
+        <![endif]-->
+        <canvas id="canvas"></canvas>
+        <script>
+            const HEIGHT = canvas.height = canvas.offsetHeight
+            const WIDTH = canvas.width = canvas.offsetWidth
+            const ctx = canvas.getContext('2d')
+            let MODEL = 'DOWN'
+            
+
+            
+            function randomColor() {
+                return `rgba(${Math.random() * 255},${Math.random() * 255}, ${Math.random() * 255}, ${Math.random()/2 + 0.5})`
+            }
+                        
+        
+            class AnimaItem {
+                time = 0
+                isRemove = false
+                interval
+                
+
+                constructor(interval) {
+                    this.interval = interval
+                }
+
+                update(delay) {
+                    this.time += delay
+                    if (this.time < this.interval) return
+                    this.time = 0
+                } 
+
+                draw(ctx){}
+            }
+
+            class Line  extends AnimaItem{
+
+                x
+                y
+                speed
+                length
+                isTouch
+                circle
+                endHeight
+                startHeight
+                angle
+
+                endX
+                endY
+
+                isCheck = false
+           
+                
+                constructor(x, y, endHeight, angle, length, speed, startHeight=0, color='white') {
+                    super(10)
+
+                    // const x1 = Math.random() * WIDTH
+                    // const x1 =  WIDTH
+                    // this.startPoint = {x: x1, y: -(Math.random() * 50 + 10)}
+                    // this.ratio = Math.random() 
+                   
+
+                    // this.endPoint = {x: x1 + (Math.random() > 0.9 ? (this.startPoint.y * Math.random() - this.startPoint.y / 2) : 0), y: 0}
+                    // this.endPoint = endPoint
+                    // this.endPoint = {x: x1 - 50, y: 0}
+                    this.x = x
+                    this.y = y
+                    this.angle = angle * Math.PI / 180.0
+                    this.speed = speed
+                    // this.ratio = (this.endPoint.x - this.startPoint.x) / (this.endPoint.y - this.startPoint.y)
+                    this.isTouch = false
+                    // this.endHeight = HEIGHT * 0.8 + Math.random() * HEIGHT * 0.2
+                    this.endHeight = endHeight
+                    this.length = length
+                    this.startHeight = startHeight
+                    this.color = color
+                }
+
+             
+
+                incr() {
+                    this.y += this.speed
+                    this.x += this.speed * Math.tan(this.angle)
+                    if (this.y + this.length * Math.cos(this.angle) < this.endHeight) {
+                        this.endX = this.x + this.length * Math.sin(this.angle)
+                        this.endY = this.y + this.length * Math.cos(this.angle)
+                    }else {
+                        this.endX = this.x + (this.endHeight - this.y) * Math.tan(this.angle)
+                        this.endY = this.endHeight
+                    }
+
+                }
+               
+                
+                update(delay) {
+                    super.update(delay)
+                    this.incr()
+                    
+                    if (this.y > this.endHeight || this.endY < this.startHeight ) this.isRemove = true
+                    
+                    if (this.y + this.length * Math.cos(this.angle) > this.endHeight) this.isTouch = true
+                   
+                    
+                }
+
+                draw(ctx) {
+                    if (this.remove) return
+                    ctx.beginPath()
+                    ctx.strokeStyle = this.color
+                    ctx.moveTo(this.x, this.y)
+                    ctx.lineTo(this.endX, this.endY)
+                    
+                    ctx.stroke()
+                }
+            }
+
+        
+            class Circle extends AnimaItem{
+                speed
+                radius
+                point
+                opacity
+              
+                constructor(speed, interval, point, radius, opacity) {
+                    super(interval)
+                    this.speed = speed
+                    this.radius = radius
+                    this.point = point
+                
+                    this.opacity = opacity
+                }
+
+                update(delay) {
+                    super.update(delay)
+                    this.radius += this.speed
+                    this.opacity -= this.speed * 0.005
+                    if (this.opacity <= 0 || this.radius < 0) this.isRemove = true
+
+                }
+                draw(ctx) {
+                    ctx.beginPath()
+                    ctx.ellipse(this.point.x, this.point.y, this.radius, 0.25 * this.radius,0, 0, 2*Math.PI)
+                    ctx.strokeStyle = `rgba(255, 255, 255, ${this.opacity})`
+                    ctx.stroke()
+                   
+                }
+
+            }
+
+
+            // class Text {
+            //     x
+            //     y
+            //     text
+            //     opacity = 0
+                
+
+            //     constructor(x, y, text) {
+            //         this.x = x
+            //         this.y = y
+            //         this.text = text
+                   
+            //     }
+
+            //     update(delay) {
+            //         if (this.opacity > 1) return
+            //         this.opacity += 0.05
+            //     }
+
+            //     draw(ctx) {
+            //         // ctx.fillStyle = `rgba(0, 0, 0, ${this.opacity})`
+            //         ctx.fillStyle = 'black'
+            //         ctx.font = "1000px cursive"
+            //         // ctx.fillText(this.text, this.x, this.y)
+            //         ctx.fillText('心', 280, 900)
+                   
+            //     }
+            // }
+
+            class Rect {
+                x
+                y
+                width
+                height
+               
+
+                constructor(x, y, width, height) {
+                    this.x = x
+                    this.y = y
+                    this.width = width
+                    this.height = height
+                }
+               
+
+                draw(ctx) {
+                    ctx.fillStyle = 'white'
+                    ctx.fillRect(this.x, this.y, this.width, this.height)
+                }
+            }
+
+            class Game{
+                lines = []
+                circles = []
+                time = 0
+                lineInterval = 10
+                direction = true
+                rect = new Rect(0, 0,WIDTH, 0)
+                isClose = false
+                // text = new Text(0, 0, 'sb')
+           
+                
+        
+                changeDirection() {
+                    if (this.direction) {
+                        this.direction = false
+                        this.lines.forEach(item => {
+                        item.speed = -item.speed
+                        })
+                        this.circles.forEach(item => {
+                            item.speed = -item.speed
+                        })
+                    }
+                    
+                }
+
+                update(delay) {
+                    this.time += delay
+               
+                    if (this.time % this.lineInterval <= delay) {
+                       
+                        const length = Math.random() * 50 + 10
+                        const angle = Math.random() > 0.9 ? 15 + Math.random() * 15 : 0     
+                        const endHeight = HEIGHT * 0.8 + Math.random() * HEIGHT * 0.2
+                        const x =  Math.random() * WIDTH
+                        let y
+                        let speed
+                        if (this.direction) {
+                            y =  -length * Math.cos(angle) 
+                            speed = Math.random() * 10 + 10
+                        }else {
+                            y = endHeight     
+                            speed = -(Math.random() * 10 + 10) 
+                        }
+                    
+                        const line = new Line(x, y, endHeight, angle, length, speed)
+                        this.lines.push(line)
+                        if (!this.direction) {
+                            this.circles.push(new Circle(line.speed, line.interval, {x: line.x, y: line.y}, 200, 0))
+                        }
+                    }
+                    this.lines.forEach(item => {
+                        item.update(delay)
+                        if (item.isTouch && !item.circle) {
+                            item.circle = new Circle(item.speed, item.interval, {x: item.endX, y: item.endY}, 0, 1)
+                            this.circles.push(item.circle)
+                        }
+                    })
+
+                    this.circles.forEach(item => {
+                        item.update(delay)
+                    })
+
+
+                    // this.lines = this.lines.filter(item => !item.isRemove)
+                    // this.circles = this.circles.filter(item => !item.isRemove)
+
+                    if (!this.direction) {
+                        let num = 0
+                        this.lines.forEach(line => {
+                            if ((!line.isCheck )&& line.y <  this.rect.height)  {
+                                this.rect.height += 1
+                                const aLine = new Line(line.x, line.y, line.endHeight, line.angle, line.length, line.speed, 0, randomColor())
+                                aLine.isCheck = true
+                                this.lines.push(aLine)
+                                line.isCheck = true
+                            }
+                            
+                        })
+
+                        // this.lines.forEach(line => {
+                        //     line.startHeight = this.rect.height
+                        // })
+                       
+                        if (this.rect.height > HEIGHT) {
+                            this.rect.height = HEIGHT
+                            this.isClose = true
+                        }
+                    }
+
+                    // if (this.isClose && (!this.text)) {
+                        
+                    // }
+
+                    // if (this.text) {
+                    //     this.text.update(delay)
+                    // }
+
+                    this.lines = this.lines.filter(item => !item.isRemove)
+                    this.circles = this.circles.filter(item => !item.isRemove)
+
+                    // else {
+                    //     // console.log('asdf');
+                    //     let num = 0
+                    //     this.lines.forEach(line => {
+                    //        if (line.y > this.rect.y + this.rect.height) num ++
+                    //     })
+                    //     this.rect.height -= num / 10
+                    //     if (this.rect.height < 0) this.rect.height = 0
+                    // }
+
+                    // console.log(this.lines.length, this.circles.length)
+                }
+
+                draw(ctx) {
+                    this.rect.draw(ctx)
+
+                    // if (this.text) {
+                        // this.text.draw(ctx)
+                    // }
+                    this.lines.forEach(item => {
+                        item.draw(ctx)
+                    })
+                    this.circles.forEach(item => {
+                        item.draw(ctx)
+                    })
+                    
+                    
+                }
+
+
+            }
+
+            let lastTime = 0
+            const game = new Game()
+
+            function animate(timestamp = 0) {
+                let delayTime = timestamp - lastTime
+                lastTime = timestamp
+
+                ctx.fillStyle = 'black'
+                ctx.fillRect(0, 0, WIDTH, HEIGHT)
+                game.update(delayTime)
+                game.draw(ctx)
+
+                requestAnimationFrame(animate)
+            }
+
+            animate()
+
+            document.addEventListener('click', () => {
+               game.changeDirection()
+                
+            })
+        </script>
+    </body>
+</html>
